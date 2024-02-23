@@ -2,7 +2,7 @@ import torch
 import pdb
 import torch.nn.functional as F
 
-def trajectory_balance_loss(total_flow, rewards, fwd_probs, back_probs, answer):
+def trajectory_balance_loss(total_flow, rewards, fwd_probs, back_probs, answer = None):
     """
     Computes the mean trajectory balance loss for a collection of samples. For
     more information, see Bengio et al. (2022): https://arxiv.org/abs/2201.13259
@@ -27,17 +27,18 @@ def trajectory_balance_loss(total_flow, rewards, fwd_probs, back_probs, answer):
     back_probs = torch.cat(back_probs, dim=0)
     fwd_probs = torch.cat(fwd_probs, dim=0)
     rewards = torch.tensor(rewards[-1]).to("cuda")
-    total_flow = torch.tensor(total_flow).to("cuda")
-    ### TODO 길이가 안맞아서 일단 51개씩 맞춰놨는데 (100개기준) 나중에 변경하기 
-    ### TODO 35개의 길이를 가진 분포 형태로 나옴 (35개의 action) -> 이게 맞는지 확인 필요
 
-    # ce_reward = torch.log(F.cross_entropy(fwd_probs, torch.flatten(answer,0), reduction="sum"))
-    # rewards = (1 / (ce_reward + 1e-5)) + rewards
-    # reward = rewards
+    if rewards == 0 :
+        pass
+    else:
+        rewards = torch.log(rewards)
 
-    # lhs = total_flow * torch.prod(fwd_probs, dim=1)
-    # rhs = sum(rewards) * torch.prod(back_probs, dim=1)
-    loss = torch.square(torch.log(total_flow) + torch.sum(torch.log(fwd_probs), dim=1) - torch.sum(torch.log(rewards)) - torch.sum(torch.log(back_probs), dim=1))
+    # device check
+    if total_flow.device.type != 'cuda':
+        total_flow = torch.tensor(total_flow).to("cuda")
+    
+    loss = torch.square(total_flow + torch.sum(fwd_probs, dim=0) - rewards - torch.sum(back_probs, dim=0))
+    
 
-    return loss.sum(), rewards
+    return loss.sum(), torch.exp(rewards), total_flow
     

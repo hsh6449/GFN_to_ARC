@@ -7,6 +7,7 @@ import numpy as np
 from .log import Log
 
 import segmentation_models_pytorch as smp
+from collections import OrderedDict
 
 class GFlowNet(nn.Module):
     def __init__(self, forward_policy, backward_policy, env=None, device='cuda'):
@@ -57,8 +58,35 @@ class GFlowNet(nn.Module):
         probs = self.forward_policy(s)
 
         return probs
+    
+    def unflatten_vec(obs,grid_size):
+        s = grid_size*grid_size
+        sizes = [s, 2, s, 2, s, 2,   1, s, s, 2, 2, s, 1,     s, 1, 1]
+        sizesum = [0]
+        for _s in sizes:
+            sizesum.append(sizesum[-1]+_s)
+        
+        names = [
+            "clip","clip_dim",
+            "grid","grid_dim",
+            "input","input_dim",
+                "active",
+                "background",
+                "object","object_dim","object_pos","object_sel",
+                "rotation_parity",
+            "selected",
+            "terminated",
+            "trials_remain",
+            ]
+        req_reshape = ["clip", "grid", "input", "background", "object", "object_sel", "selected"]
 
-    def sample_states(self, s0, return_log=True):
+        splits = [obs[:, st:ed].long() for st, ed in zip(sizesum[:-1],sizesum[1:])]
+        res =  OrderedDict(zip(names,splits))
+        for k in req_reshape:
+            res[k] = res[k].reshape(-1,grid_size,grid_size)
+        return res
+
+    def sample_states(self, s0,info, return_log=True):
         """
         Samples and returns a collection of final states from the GFlowNet.
 
@@ -69,9 +97,10 @@ class GFlowNet(nn.Module):
             sampling process (e.g. the trajectory of each sample, the forward
             and backward probabilities, the actions taken, etc.)
         """
-        s = torch.tensor(s0["input"], dtype=torch.float).to(self.device)
+        # s = torch.tensor(s0["input"], dtype=torch.float).to(self.device)
+        s = torch.tensor(s0, dtype=torch.float).to(self.device)
         # s = torch.tensor(s0, dtype=torch.float).to(self.device)
-        grid_dim = s.shape
+        grid_dim = info["input_dim"]
 
         log = Log(s, self.backward_policy, self.total_flow,
                   self.env) if return_log else None
@@ -107,9 +136,11 @@ class GFlowNet(nn.Module):
 
             # reward 는 spase reward 이기 때문에 따로 reward 함수를 만들어서 log에 저장하는 함수를 만들어야함
             state, reward, is_done, _, info = result
-            s = torch.tensor(state["grid"], dtype = torch.long).to(self.device)
+            # s = torch.tensor(state["grid"], dtype = torch.long).to(self.device)
+            s = torch.tensor(state, dtype = torch.float).to(self.device)
 
-            re = self.reward(s)
+
+            re = self.reward(self.unflatten_vec(state,info["input_dim"][0]))
 
             ime_reward = re + reward
 

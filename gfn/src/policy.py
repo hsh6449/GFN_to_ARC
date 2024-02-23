@@ -14,6 +14,13 @@ class ForwardPolicy(nn.Module):
         self.dense1 = nn.Linear(state_dim*state_dim, hidden_dim)
         self.dense2 = nn.Linear(hidden_dim, hidden_dim)
         self.dense3 = nn.Linear(hidden_dim, num_actions+4)
+        # self.dense1 = nn.Linear(6314, 2056)
+        # self.dense2 = nn.Linear(2056, 1028)
+        # self.dense3 = nn.Linear(1028, 512)
+        # self.dense4 = nn.Linear(512, 256)
+        # self.dense5 = nn.Linear(256, 128)
+        # self.dense6 = nn.Linear(128, num_actions+4)
+
 
         self.conv2d = nn.Conv2d(1, 3, kernel_size=1, stride=1, padding=1)
         self.relu = nn.ReLU()
@@ -39,6 +46,13 @@ class ForwardPolicy(nn.Module):
         x = self.dense2(x)
         x = relu(x)
         x = self.dense3(x)
+
+        # x = relu(x)
+        # x = self.dense4(x)
+        # x = relu(x)
+        # x = self.dense5(x)
+        # x = relu(x)
+        # x = self.dense6(x)
 
         x = softmax(x, dim=0)
         

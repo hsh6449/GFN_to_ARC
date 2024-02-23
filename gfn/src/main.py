@@ -16,6 +16,7 @@ import time
 import pickle
 import pdb
 import numpy as np
+
 import gymnasium as gym
 from gymnasium import spaces
 from tqdm import tqdm
@@ -63,7 +64,7 @@ def train(num_epochs, device):
         # s0 = torch.tensor(state, dtype=torch.float32).to(device)
         
         for _ in tqdm(range(100)):
-            result = model.sample_states(state, return_log=True)
+            result = model.sample_states(state, info, return_log=True)
             
             if len(result) == 2:
                 s, log = result

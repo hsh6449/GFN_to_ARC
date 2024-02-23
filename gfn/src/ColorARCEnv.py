@@ -57,15 +57,17 @@ class CustomO2ARCEnv(O2ARCv2Env):
         obs, info = super().reset(seed, options)
 
         self.reset_options = options
-        # rotate_k = np.random.randint(0,4)
-        # permute = np.random.permutation(10)
-        # f = lambda x: permute[int(x)]
-        # ffv = np.vectorize(f)
-        ## augment
+        # 여기서부터
+        rotate_k = np.random.randint(0,4)
+        permute = np.random.permutation(10)
+        f = lambda x: permute[int(x)]
+        ffv = np.vectorize(f)
+        # augment
         
-        # self.input_ = np.copy(np.rot90(ffv(self.input_),k=rotate_k).astype(np.int8))
-        # self.answer = np.copy(np.rot90(ffv(self.answer),k=rotate_k).astype(np.int8))
-        # self.input = np.copy(obs)
+        self.input_ = np.copy(np.rot90(ffv(self.input_),k=rotate_k).astype(np.int8))
+        self.answer = np.copy(np.rot90(ffv(self.answer),k=rotate_k).astype(np.int8))
+        self.input = np.copy(obs)
+        #여기까지 빼도됨 (flatten 안쓸거면)
         self.init_state(self.input_.copy(),options)
         return obs, info
 
@@ -170,7 +172,7 @@ def env_return(render, data, options):
     env = gym.make('ARCLE/O2ARCv2Env', render_mode=render, data_loader=data, max_grid_size=(5, 5), colors=10, max_episode_steps=None )
     env = CustomO2ARCEnv(max_trial=100,options=options)
     env = BBoxWrapper(env)
-    # env = FlattenObservation(env)
+    env = FlattenObservation(env)
     env = TimeLimit(env, max_episode_steps=100)
 
     return env
